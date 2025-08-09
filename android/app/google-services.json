@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "598448920884",
+    "project_id": "healthfluence-ea138",
+    "storage_bucket": "healthfluence-ea138.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598448920884:android:f668d6688504fa59122d61",
+        "android_client_info": {
+          "package_name": "com.yuri.healthfluence"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcN80Ts3z1Bj8RzgyuSr0PAI-BkvAYjy4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
