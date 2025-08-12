@@ -2,7 +2,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
-
+import 'package:flutter/material.dart';
+// 달라진 점: 모델과 서비스를 import 합니다.
+import '../models/category.dart';
+import '../services/data_service.dart';
 // ------------------ 1. 회원가입 ------------------
 class SignUpScreen extends StatefulWidget {
   const SignUpScreen({super.key});
@@ -399,24 +402,35 @@ class _RoutineScreenState extends State<RoutineScreen> {
                 alignment: Alignment.bottomRight,
                 child: FloatingActionButton(
                   onPressed: () async {
+                    // --- Firebase 로직 (수정 안 함) ---
                     try {
                       final uid = FirebaseAuth.instance.currentUser?.uid;
                       if (uid != null) {
-                        await FirebaseFirestore.instance.collection('users').doc(uid).set({
-                          'routines': selectedRoutines, 
-                          'onboardingDone': true}, 
-                          SetOptions(merge: true));
-                        }
-                        } catch (e) {
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(uid)
+                            .set({
+                          'routines': selectedRoutines,
+                          'onboardingDone': true
+                        }, SetOptions(merge: true));
+                      }
+                    } catch (e) {
+                      // 오류 처리
+                    }
+                    // --- Firebase 로직 끝 ---
 
-                          }
-                          if (context.mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(builder: (context) => const MainNavigationScreen()),
-                              );
-                              }
-                              },
+
+                    // ▼▼▼ 이 부분의 내비게이션 로직을 수정했습니다. ▼▼▼
+                    if (context.mounted) {
+                      // 이전의 모든 화면을 제거하고 MainNavigationScreen으로 이동
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => const MainNavigationScreen()),
+                        (Route<dynamic> route) => false,
+                      );
+                    }
+                  },
                   mini: true,
                   child: const Icon(Icons.arrow_forward),
                 ),
@@ -428,7 +442,6 @@ class _RoutineScreenState extends State<RoutineScreen> {
     );
   }
 }
-
 // ------------------ 5. 네비게이션바 ------------------
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
@@ -512,7 +525,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-// ------------------ 카테고리 화면 ------------------
+// ------------------ 카테고리 화면 (리팩토링 후) ------------------
 class CategoryScreen extends StatefulWidget {
   const CategoryScreen({super.key});
 
@@ -521,160 +534,144 @@ class CategoryScreen extends StatefulWidget {
 }
 
 class _CategoryScreenState extends State<CategoryScreen> {
-  // 1. 상태 관리 변수들
-  int _selectedMainCategoryIndex = 0; // 선택된 메인 카테고리 인덱스
+  // 달라진 점: 데이터 서비스와 Future 변수를 사용합니다.
+  final DataService _dataService = DataService();
+  late Future<List<Category>> _categoriesFuture;
+  int _selectedMainCategoryIndex = 0;
 
-  // 2. 카테고리 데이터
-  final List<String> _mainCategories = ["다이어트", "벌크업", "피부 건강", "이너 디톡스"];
-
-  final Map<String, List<Map<String, String>>> _subCategories = {
-    "다이어트": [
-      {"name": "주스"},
-      {"name": "스무디"},
-      {"name": "스킨 루틴"},
-      {"name": "클렌징"}
-    ],
-    "벌크업": [
-      {"name": "단백질 쉐이크"},
-      {"name": "에너지바"},
-      {"name": "보충제"}
-    ],
-    "피부 건강": [
-      {"name": "콜라겐 음료"},
-      {"name": "비타민C"},
-      {"name": "마스크팩"}
-    ],
-    "이너 디톡스": [
-      {"name": "클렌즈 주스"},
-      {"name": "디톡스 티"},
-      {"name": "건강즙"}
-    ],
-  };
+  @override
+  void initState() {
+    super.initState();
+    // initState에서 데이터 로딩을 시작합니다.
+    _categoriesFuture = _dataService.getCategories();
+  }
 
   @override
   Widget build(BuildContext context) {
-    // 선택된 메인 카테고리에 해당하는 서브 카테고리 목록
-    final currentSubCategories =
-        _subCategories[_mainCategories[_selectedMainCategoryIndex]] ?? [];
-
-    return SafeArea(
-      child: Column(
-        children: [
-          // --- 상단 검색창 ---
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text("HF",
-                    style:
-                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 10),
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: "검색창",
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.grey[200],
-                    contentPadding: EdgeInsets.zero,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: BorderSide.none,
+    return Scaffold( // Scaffold를 추가하여 화면의 기본 구조를 만듭니다.
+      body: SafeArea(
+        child: Column(
+          children: [
+            // --- 상단 검색창 (기존 코드와 동일) ---
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text("HF", style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 10),
+                  TextField(
+                    decoration: InputDecoration(
+                      hintText: "검색창",
+                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                      filled: true,
+                      fillColor: Colors.grey[200],
+                      contentPadding: EdgeInsets.zero,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-          // --- 메인 컨텐츠 (좌: 메인 카테고리, 우: 서브 카테고리) ---
-          Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // --- Section 1: 왼쪽 메인 카테고리 목록 ---
-                SizedBox(
-                  width: 100,
-                  child: ListView.builder(
-                    itemCount: _mainCategories.length,
-                    itemBuilder: (context, index) {
-                      final isSelected = _selectedMainCategoryIndex == index;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedMainCategoryIndex = index;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          decoration: BoxDecoration(
-                            color: isSelected ? Colors.white : Colors.grey[100],
-                            border: Border(
-                              left: BorderSide(
-                                color: isSelected
-                                    ? Colors.black
-                                    : Colors.transparent,
-                                width: 4,
-                              ),
-                            ),
-                          ),
-                          child: Center(
-                            child: Text(
-                              _mainCategories[index],
-                              style: TextStyle(
-                                fontWeight:
-                                    isSelected ? FontWeight.bold : FontWeight.normal,
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-                // --- Section 2: 오른쪽 서브 카테고리 그리드 ---
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      // map 함수 안의 Column을 GestureDetector로 감싸줍니다.
-                      children: currentSubCategories.map((item) {
-                        return GestureDetector( // <-- 1. GestureDetector 추가
-                          onTap: () { // <-- 2. onTap 이벤트 추가
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                // 3. InfluencerScreen으로 이동하며 카테고리 이름 전달
-                                builder: (context) => InfluencerListScreen(
-                                  categoryName: item["name"]!,
+            // 달라진 점: FutureBuilder로 감싸서 데이터 로딩 상태를 처리합니다.
+            Expanded(
+              child: FutureBuilder<List<Category>>(
+                future: _categoriesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(child: Text("오류: ${snapshot.error}"));
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Center(child: Text("카테고리가 없습니다."));
+                  }
+
+                  final categories = snapshot.data!;
+                  final currentSubCategories = categories[_selectedMainCategoryIndex].subCategories;
+
+                  // --- 메인 컨텐츠 (기존 Row 구조 사용) ---
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- Section 1: 왼쪽 메인 카테고리 목록 ---
+                      SizedBox(
+                        width: 100,
+                        child: ListView.builder(
+                          itemCount: categories.length,
+                          itemBuilder: (context, index) {
+                            final isSelected = _selectedMainCategoryIndex == index;
+                            return GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _selectedMainCategoryIndex = index;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? Colors.white : Colors.grey[100],
+                                  border: Border(left: BorderSide(color: isSelected ? Colors.black : Colors.transparent, width: 4)),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    categories[index].name, // 달라진 점
+                                    style: TextStyle(fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
+                                  ),
                                 ),
                               ),
                             );
                           },
-                          child: Column(
-                            children: [
-                              Container(
-                                width: 70,
-                                height: 70,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey[300],
-                                  borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      // --- Section 2: 오른쪽 서브 카테고리 그리드 ---
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            children: currentSubCategories.map((subCategory) { // 달라진 점
+                              return GestureDetector(
+                                onTap: () {
+                                  // 달라진 점: 새로운 화면으로 id와 name을 전달합니다.
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => InfluencerListScreen(
+                                        subCategoryId: subCategory.id,
+                                        subCategoryName: subCategory.name, categoryName: '',
+                                      ),
+                                    ),
+                                  );
+                                },
+                                child: Column(
+                                  children: [
+                                    Container(
+                                      width: 70,
+                                      height: 70,
+                                      decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(8)),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(subCategory.name), // 달라진 점
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(item["name"]!),
-                            ],
+                              );
+                            }).toList(),
                           ),
-                        );
-                      }).toList(),
-                    ),
-                  ),
-                ),
-              ],
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -684,7 +681,7 @@ class _CategoryScreenState extends State<CategoryScreen> {
 class InfluencerListScreen extends StatefulWidget {
   final String categoryName;
 
-  const InfluencerListScreen({super.key, required this.categoryName});
+  const InfluencerListScreen({super.key, required this.categoryName, required String subCategoryId, required String subCategoryName});
 
   @override
   State<InfluencerListScreen> createState() => _InfluencerListScreenState();
