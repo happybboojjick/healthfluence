@@ -1,0 +1,8 @@
+﻿name = "healthfluence-api"
+main = "worker.js"
+compatibility_date = "2025-08-10"
+
+[[d1_databases]]
+binding = "DB"               
+database_name = "healthfluence"
+database_id = "fa7849c4-d13d-42df-9bf1-46fe7f25775c"
