@@ -14,8 +14,10 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+  plugins {
+        id("com.google.gms.google-services") version "4.4.2"
+    }
 }
-
 plugins {
     id("dev.flutter.flutter-plugin-loader") version "1.0.0"
     id("com.android.application") version "8.7.3" apply false
