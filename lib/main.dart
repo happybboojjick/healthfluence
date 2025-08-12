@@ -72,7 +72,7 @@ class AuthGate extends StatelessWidget {
         if (snap.connectionState == ConnectionState.waiting) {
           return const Scaffold(body: Center(child: CircularProgressIndicator()));
         }
-        if (snap.data == null) return const SignInPage();
+        if (snap.data == null) return const SignUpScreen();
 
         return OnboardingGate(uid: snap.data!.uid);
       },
@@ -108,7 +108,7 @@ class OnboardingGate extends StatelessWidget {
 
         debugPrint('OnboardingGate resolved: uid=$uid exists=$exists done=$done');
 
-        if (!exists || !done) return const SignUpScreen();
+        if (!exists || !done) return const AllergyScreen();
         return const MainNavigationScreen();
       },
     );

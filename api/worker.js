@@ -1,4 +1,6 @@
-﻿export default {
+﻿import Papa from "papaparse"; 
+
+export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     const path = url.pathname;
@@ -62,9 +64,71 @@
         return new Response(JSON.stringify({ tags: top }), { headers });
       }
 
+   
+      if (path === "/sync") {
+        const result = await syncFromSheet(env);
+        return new Response(JSON.stringify(result), { headers });
+      }
+
       return new Response(JSON.stringify({ error: "not_found" }), { status: 404, headers });
+
     } catch (e) {
       return new Response(JSON.stringify({ error: "server_error", message: String(e) }), { status: 500, headers });
     }
+  },
+
+
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(syncFromSheet(env));
   }
 };
+
+async function syncFromSheet(env) {
+  try {
+    const res = await fetch(env.SHEETS_CSV_URL);
+    const text = await res.text();
+
+    const parsed = Papa.parse(text, { header: true }).data;
+    let insertedInfluencers = 0;
+    let insertedRoutines = 0;
+
+    for (const row of parsed) {
+      if (!row["프로필 ID"] || !row["콘텐츠 ID"]) continue;
+
+
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO influencers (id, name, platform, handle, channel_url, followers)
+         VALUES (?, ?, ?, ?, ?, ?)`
+      ).bind(
+        row["프로필 ID"],
+        row["프로필 ID"],
+        row["분류"],
+        row["프로필 ID"],
+        row["프로필 url"],
+        parseInt(row["구독자/팔로워 수"].replace(/,/g, "")) || 0
+      ).run();
+      insertedInfluencers++;
+
+      await env.DB.prepare(
+        `INSERT OR IGNORE INTO routines
+        (id, title, categories, cost_krw, time_min, difficulty, influencer_id, popularity_score,
+         video_url, thumbnail_url, provider, tags, created_at)
+         VALUES (?, ?, ?, 0, 0, 1, ?, 50, ?, ?, ?, ?, datetime('now'))`
+      ).bind(
+        row["콘텐츠 ID"],
+        row["제목"],
+        row["키워드"],
+        row["프로필 ID"],
+        row["영상 url"],
+        row["이미지 url"],
+        row["분류"],
+        row["키워드"]
+      ).run();
+      insertedRoutines++;
+    }
+
+    return { ok: true, influencers: insertedInfluencers, routines: insertedRoutines };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
