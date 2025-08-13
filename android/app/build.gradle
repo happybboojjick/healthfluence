@@ -1,0 +1,57 @@
+// android/app/build.gradle  (Groovy)
+
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // Flutter Gradle 플러그인 (Flutter 3.16+ 템플릿)
+    id "dev.flutter.flutter-gradle-plugin"
+    // Google Services (Firebase)
+    id "com.google.gms.google-services"
+}
+
+android {
+    namespace "com.yuri.healthfluence"         // Firebase에 등록한 패키지와 동일
+    compileSdk 35
+
+    defaultConfig {
+        applicationId "com.yuri.healthfluence" // 동일하게 맞추기
+        minSdk 23
+        targetSdk 35
+        versionCode 1
+        versionName "1.0"
+
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            signingConfig signingConfigs.debug
+            }
+        debug {
+             minifyEnabled false
+             shrinkResources false
+              }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+dependencies {
+    // 보통 Flutter/Firebase 플러터 패키지가 내부 의존성을 처리합니다.
+    // 별도 implementation 추가는 필요없습니다.
+    // (필요 시 멀티덱스 라이브러리 사용)
+    implementation "androidx.multidex:multidex:2.0.1"
+}

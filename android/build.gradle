@@ -1,0 +1,37 @@
+// android/build.gradle  (Groovy)
+
+buildscript {
+    ext.kotlin_version = '1.9.24'
+
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Android Gradle Plugin (Flutter 3.22 기준 8.5.x 사용)
+        classpath "com.android.tools.build:gradle:8.5.2"
+        // Kotlin Gradle Plugin
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlin_version}"
+        // Google Services (Firebase)
+        classpath "com.google.gms:google-services:4.4.2"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+// Flutter가 빌드 산출물을 한 폴더에 모으도록 설정(템플릿 기본)
+rootProject.buildDir = "../build"
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    project.evaluationDependsOn(":app")
+}
+
+// clean 태스크
+tasks.register("clean", Delete) {
+    delete rootProject.layout.buildDirectory
+}

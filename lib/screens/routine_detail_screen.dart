@@ -1,12 +1,12 @@
 // lib/screens/routine_detail_screen.dart
-
 import 'package:flutter/material.dart';
-import '../models/influencer_routine.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/data_service.dart';
+import '../services/user_service.dart';
+import '../models/influencer_routine.dart';
 
 class RoutineDetailScreen extends StatefulWidget {
   final String routineId;
-
   const RoutineDetailScreen({super.key, required this.routineId});
 
   @override
@@ -14,58 +14,84 @@ class RoutineDetailScreen extends StatefulWidget {
 }
 
 class _RoutineDetailScreenState extends State<RoutineDetailScreen> {
-  final DataService _dataService = DataService();
-  late Future<InfluencerRoutine?> _routineFuture;
+  final _api = DataService();
+  late Future<InfluencerRoutine> _future;
 
   @override
   void initState() {
     super.initState();
-    _routineFuture = _dataService.getRoutineById(widget.routineId);
+    _future = _api.fetchRoutineDetail(widget.routineId);
   }
 
   @override
   Widget build(BuildContext context) {
+    final uid = FirebaseAuth.instance.currentUser?.uid;
     return Scaffold(
-      appBar: AppBar(title: const Text("루틴 상세정보")),
-      body: FutureBuilder<InfluencerRoutine?>(
-        future: _routineFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
+      appBar: AppBar(title: const Text('루틴 상세')),
+      body: FutureBuilder<InfluencerRoutine>(
+        future: _future,
+        builder: (context, snap) {
+          if (snap.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          if (snapshot.hasError || !snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text("루틴 정보를 불러올 수 없습니다."));
+          if (snap.hasError) {
+            return Center(child: Text('오류: ${snap.error}'));
           }
+          final r = snap.data;
+          if (r == null) return const SizedBox.shrink();
 
-          final routine = snapshot.data!;
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
+          return SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Text(r.title, style: Theme.of(context).textTheme.headlineSmall),
+                const SizedBox(height: 8),
+                Text(r.categories),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
                   children: [
-                    CircleAvatar(
-                      radius: 30,
-                      backgroundImage: NetworkImage(routine.profileImageUrl),
-                    ),
-                    const SizedBox(width: 16),
-                    Text(
-                      routine.influencerName,
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                    ),
+                    Chip(label: Text('시간 ${r.timeMin}분')),
+                    Chip(label: Text('난이도 ${r.difficulty}')),
+                    if (r.provider.isNotEmpty) Chip(label: Text(r.provider)),
                   ],
                 ),
+                const SizedBox(height: 16),
+                if (r.tags.isNotEmpty)
+                  Wrap(
+                    spacing: 8, runSpacing: 8,
+                    children: r.tags.map((t) => Chip(label: Text('#$t'))).toList(),
+                  ),
+                const SizedBox(height: 16),
+                Text('구성 요소', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 8),
+                if (r.elements.isEmpty) const Text('요소 정보가 없습니다.'),
+                ...r.elements.map((e) {
+                  final parts = <String>[];
+                  if (e.qty > 0) parts.add(e.qty.toString());
+                  if (e.unit.isNotEmpty) parts.add(e.unit);
+                  if (e.note.isNotEmpty) parts.add('- ${e.note}');
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(e.name.isNotEmpty ? e.name : '이름 미지정'),
+                    subtitle: parts.isEmpty ? null : Text(parts.join(' ')),
+                  );
+                }),
                 const SizedBox(height: 24),
-                Text(
-                  routine.routineTitle,
-                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                ),
-                const Divider(height: 32),
-                Text(
-                  routine.description,
-                  style: const TextStyle(fontSize: 16, height: 1.5), // 이 부분이 완성되었습니다.
-                ),
+                if (uid != null)
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        await UserService().toggleFavoriteRoutine(uid, r.id, true);
+                        if (!mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('찜에 추가됨')));
+                      },
+                      icon: const Icon(Icons.favorite),
+                      label: const Text('찜하기'),
+                    ),
+                  ),
               ],
             ),
           );
