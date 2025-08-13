@@ -1,8 +1,16 @@
 ﻿name = "healthfluence-api"
 main = "worker.js"
 compatibility_date = "2025-08-10"
+account_id = "b4f9d1d6f7e3b5e3315af4c0ab549927"
 
 [[d1_databases]]
 binding = "DB"               
 database_name = "healthfluence"
 database_id = "fa7849c4-d13d-42df-9bf1-46fe7f25775c"
+
+[triggers]
+crons = ["*/30 * * * *"]
+
+[vars]
+SHEETS_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSusxMm9Rv3O2U4wuEK3UjTfuWkuXDLys1o1t5gGmBAm16aRSlCIejAuVZe0N_wdhc1ShQPAwVvmqgI/pub?gid=618053835&single=true&output=csv"
+compatibility_flags = ["nodejs_compat"]
